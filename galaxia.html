@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Galaxia</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      background: #000;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Capa para dar un brillo tipo nebulosa */
+    .nebula {
+      position: fixed;
+      inset: -20%;
+      background:
+        radial-gradient(circle at 20% 30%, rgba(170, 80, 255, 0.25), transparent 45%),
+        radial-gradient(circle at 70% 40%, rgba(80, 220, 255, 0.18), transparent 45%),
+        radial-gradient(circle at 40% 80%, rgba(255, 120, 200, 0.16), transparent 50%),
+        radial-gradient(circle at 85% 85%, rgba(80, 255, 160, 0.12), transparent 55%);
+      filter: blur(30px);
+      animation: drift 12s ease-in-out infinite alternate;
+      pointer-events: none;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes drift {
+      from { transform: translate(-2%, -1%) scale(1.02); }
+      to   { transform: translate(2%, 1%) scale(1.06); }
+    }
+
+    /* Texto principal */
+    .center {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      text-align: center;
+      pointer-events: none;
+    }
+
+    .card {
+      width: min(560px, 92vw);
+      padding: 22px 18px;
+      border-radius: 22px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    }
+
+    h1 {
+      font-size: clamp(22px, 4.3vw, 36px);
+      line-height: 1.15;
+      font-weight: 800;
+      letter-spacing: 0.2px;
+
+      /* texto brillante */
+      background: linear-gradient(90deg,
+        rgba(255,120,220,1),
+        rgba(120,220,255,1),
+        rgba(120,255,190,1),
+        rgba(255,190,120,1),
+        rgba(255,120,220,1)
+      );
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+
+      animation: shine 5s linear infinite;
+      text-shadow: 0 0 18px rgba(255, 255, 255, 0.08);
+    }
+
+    @keyframes shine {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .sub {
+      margin-top: 10px;
+      font-size: 13px;
+      opacity: 0.75;
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* Pequeño corazón flotante */
+    .heart {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      font-size: 18px;
+      opacity: 0.9;
+      animation: float 2.4s ease-in-out infinite;
+      pointer-events: none;
+      filter: drop-shadow(0 0 12px rgba(255, 80, 140, 0.5));
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(-8px); }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="stars"></canvas>
+  <div class="nebula"></div>
+
+  <div class="center">
+    <div class="card">
+      <h1>✨ Eres lo más especial para mí, te amo con todo mi corazón ✨</h1>
+      <div class="sub">🌌 Hecho con amor</div>
+    </div>
+  </div>
+
+  <div class="heart">💗</div>
+
+  <script>
+    const canvas = document.getElementById("stars");
+    const ctx = canvas.getContext("2d");
+
+    let w, h, dpr;
+    let stars = [];
+    const STAR_COUNT = 240;
+
+    function resize() {
+      dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      w = canvas.width = Math.floor(window.innerWidth * dpr);
+      h = canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      createStars();
+    }
+
+    function rand(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function createStars() {
+      stars = [];
+      for (let i = 0; i < STAR_COUNT; i++) {
+        stars.push({
+          x: rand(0, w),
+          y: rand(0, h),
+          r: rand(0.6, 2.1) * dpr,
+          a: rand(0.2, 1),
+          s: rand(0.15, 0.7) * dpr, // velocidad
+          tw: rand(0.003, 0.015),   // twinkle
+          p: rand(0, Math.PI * 2)   // fase
+        });
+      }
+    }
+
+    function drawBackground() {
+      // Fondo tipo espacio con degradado
+      const g = ctx.createRadialGradient(
+        w * 0.5, h * 0.4, 0,
+        w * 0.5, h * 0.4, Math.max(w, h)
+      );
+      g.addColorStop(0, "#0b1022");
+      g.addColorStop(0.45, "#050713");
+      g.addColorStop(1, "#000000");
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawStars(t) {
+      for (const st of stars) {
+        // movimiento suave hacia abajo (tipo viaje)
+        st.y += st.s;
+        if (st.y > h + 10) {
+          st.y = -10;
+          st.x = rand(0, w);
+        }
+
+        // twinkle
+        const twinkle = 0.55 + 0.45 * Math.sin(t * st.tw + st.p);
+        const alpha = Math.max(0.05, Math.min(1, st.a * twinkle));
+
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+        ctx.fill();
+      }
+    }
+
+    function animate(t) {
+      // t viene en ms
+      drawBackground();
+      drawStars(t);
+
+      requestAnimationFrame(animate);
+    }
+
+    window.addEventListener("resize", resize);
+
+    resize();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
